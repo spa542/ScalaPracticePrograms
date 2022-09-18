@@ -1,2 +1,19 @@
+# Scala
 *.class
 *.log
+target
+
+# Intellij
+*.iml
+*.ipr
+*.iws
+.idea
+out
+
+# Vim
+tags
+.*.swp
+.*.swo
+
+# Mac
+.DS_Store
