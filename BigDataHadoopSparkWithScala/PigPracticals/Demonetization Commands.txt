@@ -1,0 +1,44 @@
+The first line in the file looks like this (demonitization-tweets):
+"","text","favorited","favoriteCount","replyToSN","created","truncated","replyToSID","id","replyToUID","statusSource","screenName","retweetCount","isRetweet","retweeted"
+
+1. Point to folder
+[cloudera@quickstart ~]$ cd pig180512/FourthPgm
+[cloudera@quickstart FourthPgm]$ 
+
+
+2. start pig
+[cloudera@quickstart FourthPgm]$ pig -x local
+
+
+3. Run below script
+
+Load Data:
+load_tweets = LOAD 'demonitization-tweets.csv' USING PigStorage(',');
+
+Extract only ID and Text:
+extract_details = FOREACH load_tweets GENERATE $0 AS id,$1 AS text;
+
+Separate each word:
+tokens = FOREACH extract_details GENERATE id,text, FLATTEN(TOKENIZE(text)) AS word;
+
+Load Dictionary:
+dictionary = LOAD 'AFINN.txt' USING PigStorage('\t') AS(word:chararray,rating:int);
+
+Assign rating to each word:
+word_rating = JOIN tokens BY word LEFT OUTER, dictionary BY word USING 'replicated';
+
+Select only ID, Text and Rating: 
+rating = FOREACH word_rating GENERATE tokens::id AS id,tokens::text AS text, dictionary::rating AS rate;
+
+Group words:
+word_group = GROUP rating BY (id,text);
+
+Find Average Rating: 
+avg_rate = FOREACH word_group GENERATE group, AVG(rating.rate) AS tweet_rating;
+
+
+Find Positve and Negative Tweets:
+positive_tweets = FILTER avg_rate BY tweet_rating>=0;
+negative_tweets = FILTER avg_rate BY tweet_rating<0;
+
+

@@ -1,0 +1,59 @@
+Program 1: Analyze excite-small.log file to find users who searched more than 3 times in descending order.
+
+Data: excite-small.log
+
+Steps:
+A. Go to the location where data is stored
+
+   [cloudera@quickstart ~]$ cd pig180512/FirstPgm
+   [cloudera@quickstart FirstPgm]$ ls -l
+   total 204
+   -rw-rw-r-- 1 cloudera cloudera 208487 May 10 13:22 excite-small.log
+
+
+B. Start the pig: pig -x local
+   [cloudera@quickstart FirstPgm]$ pig -x local
+   grunt>
+
+C. Count Number of times each user appears:
+   grunt> log = LOAD 'excite-small.log' AS (user, timestamp, query);
+   grunt> grpd = GROUP log BY user;
+   grunt> cntd = FOREACH grpd GENERATE group, COUNT(log) as cnt;
+   grunt> STORE cntd INTO 'output';
+
+   grunt> DUMP cntd; 
+(01F6B9CA495576BA,7)
+(3F8AAC2372F6941C,5)
+(54E8C79987B6F2F3,11)
+(575DC994A9CF8D36,3)
+(73D74648CC2CA35E,1)
+(7F88C9EC4CD0BB3A,2)
+(824F413FA37520BF,9)
+(893C3ADD0EFBBECB,2)
+(BED75271605EBD0C,10)
+
+
+D. Select only those users who searched more than 3 times.
+   grunt> fltrd = FILTER cntd BY cnt > 3; 
+   grunt> STORE fltrd INTO 'output1';
+
+   grunt> DUMP fltrd;
+(01F6B9CA495576BA,7)
+(3F8AAC2372F6941C,5)
+(54E8C79987B6F2F3,11)
+(824F413FA37520BF,9)
+(BED75271605EBD0C,10)
+
+E. Sort by count.
+
+   grunt> srtd = ORDER fltrd BY cnt desc;
+   grunt> STORE srtd INTO 'output2';
+
+   grunt> DUMP srtd;
+(54E8C79987B6F2F3,11)
+(BED75271605EBD0C,10)
+(824F413FA37520BF,9)
+(01F6B9CA495576BA,7)
+(3F8AAC2372F6941C,5)
+
+

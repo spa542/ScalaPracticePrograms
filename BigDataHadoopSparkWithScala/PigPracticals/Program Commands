@@ -1,0 +1,30 @@
+1. Go to given directory
+[cloudera@quickstart ~]$ cd pig180510
+[cloudera@quickstart pig180510]$ cd SecondPgm
+
+2. Start pig locally
+[cloudera@quickstart SecondPgm]$ pig -x local
+
+3. Load both files
+grunt> file1 = LOAD 'file1' Using PigStorage(',') as (company:chararray, location:chararray, stores:int);
+grunt> file2 = LOAD 'file2' Using PigStorage(',') as (company:chararray, location:chararray, stores:int);
+
+4. JOIN
+grunt> joined = JOIN file1 BY(company, location), file2 by (company, location);
+
+
+5. FILTER
+grunt> filtered = FILTER file1 BY stores > 24;
+
+
+6. GROUP
+grunt> filtered_grouped = GROUP filtered BY location;
+
+
+7. COGROUP ( if 2OR MORE fields in BY)
+grunt> CGPD = coGROUP file2 BY (company,location), filtered BY (company,location);
+
+
+8. grunt> out = FOREACH CGPD GENERATE group, COUNT(file2) as count, MAX(filtered.stores) as max;
+
+

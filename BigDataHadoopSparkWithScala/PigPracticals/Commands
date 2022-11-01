@@ -1,0 +1,106 @@
+Understanding file
+
+For 2008_flightdataMini
+
+Name	Description
+1	 Year	1987-2008
+2	 Month	1-12
+3	 DayofMonth	1-31
+4	 DayOfWeek	1 (Monday) - 7 (Sunday)
+5	 DepTime	actual departure time (local, hhmm)
+6	 CRSDepTime	scheduled departure time (local, hhmm)
+7	 ArrTime	actual arrival time (local, hhmm)
+8	 CRSArrTime	scheduled arrival time (local, hhmm)
+9	 UniqueCarrier	unique carrier code
+10	 FlightNum	flight number
+11	 TailNum	plane tail number
+12	 ActualElapsedTime	in minutes
+13	 CRSElapsedTime	in minutes
+14	 AirTime	in minutes
+15	 ArrDelay	arrival delay, in minutes
+16	 DepDelay	departure delay, in minutes
+17	 Origin	origin IATA airport code
+18	 Dest	destination IATA airport code
+19	 Distance	in miles
+20	 TaxiIn	taxi in time, in minutes
+21	 TaxiOut	taxi out time in minutes
+22	 Cancelled	was the flight cancelled?
+23	 CancellationCode	reason for cancellation (A = carrier, B = weather, C = NAS, D = security)
+24	 Diverted	1 = yes, 0 = no
+25	 CarrierDelay	in minutes
+26	 WeatherDelay	in minutes
+27	 NASDelay	in minutes
+28	 SecurityDelay	in minutes
+29	 LateAircraftDelay	in minutes
+
+NOTE: YOU CAN GET MORE DATA FROM http://stat-computing.org/dataexpo/2009/the-data.html
+
+
+For Airport details
+
+1. iata
+2. airport
+3. city
+4. state
+5. country
+6. lat
+7. long
+
+
+
+
+
+1. Point to directory where code is present
+	[cloudera@quickstart ~]$ cd pig180512/ThirdPgm
+	[cloudera@quickstart ThirdPgm]$
+
+2. Start PIG
+	[cloudera@quickstart ThirdPgm]$ pig -x local
+	grunt> 
+
+3. Start executing below commands 
+################# To find top 3 destinations ##############################################################
+A. Load the data
+	grunt> raw_data = LOAD '2008_flightdataMini.csv' USING PigStorage(',');
+													aCCESS THE FIELDS: $0, $1, $2, $3
+
+B. Group data by destination
+	grunt> flight_details = FOREACH raw_data GENERATE (INT)$0 AS year, (INT)$9 AS flight_num, (CHARARRAY)$16 AS orig,(CHARARRAY) $17 AS dest;
+	grunt> flight_validdest = FILTER flight_details BY dest IS NOT NULL;
+	grunt> grp_dest = GROUP flight_validdest BY dest;
+
+C. Find the count and fetch top 3 destinations
+	grunt> dest_count = FOREACH grp_dest GENERATE group, COUNT(flight_validdest.dest) as cnt;
+	grunt> dest_count_ordr = ORDER dest_count BY cnt DESC;
+	grunt> dest_top_three = LIMIT dest_count_ordr 3;
+
+D. Load Airport name from different table and join it
+	grunt> airport = LOAD 'airports.csv' USING PigStorage(',') AS (iata, airport, city, state, country, lat,  longi);
+	grunt> dest_top_three_airport = JOIN dest_top_three BY $0, airport BY $0;
+	grunt > final = FOREACH dest_top_three_airport GENERATE group, airport, cnt; 
+ 	grunt> dump final;
+########################################################################################################
+
+#################### Get the worst 3 airports with maximum departure delay ###############################
+A. Load the data
+	grunt> raw_data = load '2008_flightdataMini.csv' USING PigStorage(',');
+
+B. Group data by Origin
+	grunt> flight_details = FOREACH raw_data GENERATE (INT)$0 AS year, (INT)$9 AS flight_num, (INT)$15 AS depDelay,(CHARARRAY) $16 AS orig;
+	grunt> flight_validorig = FILTER flight_details BY orig IS NOT NULL;
+	grunt> grp_orig = GROUP flight_validorig BY orig;
+
+C. Find the avg delay and fetch top 3 airport with max departure delay
+	grunt> orig_delay = FOREACH grp_orig GENERATE group, AVG(flight_validorig.depDelay) as avgDelay;
+	grunt> orig_delay_ordr = ORDER orig_delay BY avgDelay DESC;
+	grunt> orig_delay_top_three = LIMIT orig_delay_ordr 3;
+
+D. Load Airport name from different table and join it
+	grunt> airport = LOAD 'airports.csv' USING PigStorage(',') AS (iata, airport, city, state, country, lat,  longi);
+	grunt> orig_top_three_delay = JOIN orig_delay_top_three BY $0, airport BY $0;
+	grunt> finaldelay = FOREACH orig_top_three_delay GENERATE group, airport, avgDelay; 
+ 	grunt> dump finaldelay;
+
+######################################################################################################
+
+

@@ -1,0 +1,46 @@
+The first line in the file looks like this:
+"ISBN";"Book-Title";"Book-Author";"Year-Of-Publication";"Publisher";"Image-URL-S";"Image-URL-M";"Image-URL-L"
+
+1. Point to folder
+[cloudera@quickstart ~]$ cd pig180512/FourthPgm
+[cloudera@quickstart FourthPgm]$ 
+
+
+2. start pig
+[cloudera@quickstart FourthPgm]$ pig -x local
+
+
+3. Run below script
+
+######################################### No of Books published each year ######################################################################################
+A. Load the data into a Pig collection:
+books = LOAD 'BX-Books.csv' USING PigStorage(';') AS (ISBN:chararray, BookTitle:chararray, BookAuthor:chararray, YearOfPublication:int, Publisher:chararray);
+
+B. Finding books by year
+groupByYear = GROUP books BY YearOfPublication; 
+
+C. Generate book count by year
+countByYear = FOREACH groupByYear GENERATE group AS YearOfPublication, COUNT($1) AS BookCount; 
+######################################### No of Books published each year ######################################################################################
+
+######################################### No of Books published by Author each Year ######################################################################################
+D. Filter where year of publication is available
+books = FILTER books BY YearOfPublication > 0;
+
+E. create a set of all authors, and all years they wrote books:
+pivot = FOREACH (GROUP books BY BookAuthor) GENERATE group AS BookAuthor, FLATTEN(books.YearOfPublication) AS Year;
+
+F. Create author book count by year:
+authorYearGroup = GROUP pivot BY (BookAuthor, Year); 
+with_count = FOREACH authorYearGroup GENERATE FLATTEN(group), COUNT(pivot) as count; 
+######################################### No of Books published by Author each Year ######################################################################################
+
+######################### List of Books published in 20th and 21st century ############################################################
+G. Using Split
+SPLIT books into tewntyFirstCent if YearOfPublication >= 2000 ,twentyCent if YearOfPublication < 2000;
+DUMP tewntyFirstCent;
+DUMP twentyCent;
+
+allBooks = Union tewntyFirstCent,twentyCent;
+DUMP allBooks;
+######################################################################################################################################
