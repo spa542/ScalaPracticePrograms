@@ -12,6 +12,8 @@ object HelloSpark {
     println(sample_df.collect().mkString)
     val modified_df: RDD[Int] = sample_df.map(_ + 10)
     println(modified_df.collect().mkString)
+    sample_df.saveAsTextFile("./sample_df.txt")
+    modified_df.saveAsTextFile("./modified_df.txt")
   }
 
 }
