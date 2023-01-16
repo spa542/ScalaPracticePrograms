@@ -17,6 +17,7 @@ object SparkSQLMain {
   def main(args: Array[String]): Unit = {
     // Get the spark session
     // Will need to use .config to start up hive support
+    // When using hive support, need to provide jar /usr/local/hive/hive-2.3.6/lib/mysql-connector-java.jar in command
     val ss = SparkSession.builder().master("yarn").config("spark.sql.warehouse.dir", "/user/hive/warehouse").enableHiveSupport().appName("spark_sql_hive").getOrCreate()
 
     // How to use toDF!!!!
