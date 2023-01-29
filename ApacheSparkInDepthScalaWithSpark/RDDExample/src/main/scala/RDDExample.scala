@@ -1,6 +1,4 @@
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
-
 
 object RDDExample {
 
@@ -80,11 +78,92 @@ object RDDExample {
     sampleNumRDD.persist()
     sampleNumRDD.unpersist()
 
+    // Transformation (not executed) and action
+    // Checkpoints - great if you have a lot of data
+    ss.sparkContext.setCheckpointDir("/checkpointtest012923")
+    sampleNumRDD.checkpoint() // Set the checkpoint here (will show up in HDFS)
+    // Can then get the checkpoint to go from where you left off (with RDD)
+    //ss.sparkContext.getCheckpointDir("/checkpointtest012923")
 
+    // pipe
+    val sampleBookRDD = ss.sparkContext.parallelize(Array("I love this book!"))
+    // Can pipe your rdd into any of the linux commands and then get the output back
+    sampleBookRDD.collect()
+    sampleBookRDD.pipe("wc -l").collect()
 
+    // mapPartitions (can use mapPartitions to do a map function "by partition" rather than for the whole RDD 1 by 1)
+    // mapPartitionsWIthIndex (good for debug purpose) (can index to find what element is in each partition)
+    // example
+    def indexFunc(i: Int, wordInIterator: Iterator[String]) = {
+      wordInIterator.toList.map(word => s"Partition:$i => $word").iterator
+    }
+    println("MapPartitions with Index")
+    sampleBookRDD.mapPartitionsWithIndex(indexFunc).collect()
 
+    // foreachPartition (operates foreach on each partition (works the same as mapPartitions)
+    // foreachPartitionWithIndex (works same as mapPartitionsWithIndex)
 
+    // key - value RDD
+    // can create something like a dictionary in python (json)
+    // Use map
+    // Use keyBy (end value is the key)
+    sampleBookRDD.keyBy(word => word.length).collect()
+    val saveSampleKeyRDD = sampleBookRDD.keyBy(word => word.length)
+    // Just like in Python
+    saveSampleKeyRDD.keys.collect()
+    saveSampleKeyRDD.values.collect()
+    // can also use functions like mapValues and flatMapValues
 
+    // lookup (by key)
+    println(saveSampleKeyRDD.lookup(1))
+
+    // Other helpful functions
+    // countByKey and countByKeyApprox
+    // groupByKey / groupBy (version 1) (does in driver program) (risk out of memory error!)
+    saveSampleKeyRDD.groupByKey().map(z => (z._1, z._2.reduce(_ + _))).collect()
+    // or use reduceByKey! same as ex above (1st do in executor and then do in driver) (much faster)
+    saveSampleKeyRDD.reduceByKey(_ + _).collect()
+
+    // aggregate
+    val sampleNumbers = ss.sparkContext.parallelize(1 to 20, 4)
+    sampleNumbers.collect()
+    println("Printing the aggregate")
+    // zero value, partitionWise, resultsOfPartitions
+    println(sampleNumbers.aggregate(0)(_ + _, _ + _))
+    // treeAggregate (same as aggregate but can specify the depth) (does more at the executor level)
+    println(sampleNumbers.treeAggregate(0)(_ + _, _ + _, 3))
+    // can also use aggregateByKey
+
+    // cogroup (joining two RDD on basis of key and then value would be the flatMap of their values in each individual RDD)
+
+    // joins (SQL joins)
+
+    // Advanced RDD operations
+    println("Starting advanced RDD operations...")
+
+    // zips (need to have the same number of elements and same number of partitions)
+    // using sampleRDD (cars)
+    sampleRDD.collect()
+    val sampleNumRDD2 = ss.sparkContext.parallelize(Array(10000, 100000, 5234, 23479823, 588888, 298323, 2398423, 6765773))
+    sampleNumRDD2.collect()
+    val zippedRDD = sampleRDD.zip(sampleNumRDD2)
+    zippedRDD.collect()
+
+    // coalesce (should use for all reduce acts!!!) (avoids reshuffling of data!)
+    // only reduces number of partitions
+    // repartition
+    // reduce or increase the number of partitions
+
+    // When to reduce?
+    // you do a transformation and there is no need for multiple partitions (too many partitions)
+    // saving a specific type of file
+    // When to increase?
+    // you want to increase the level of parallelism (sensing slowness or have a lack of memory)
+
+    // customPartition (you can control what partition gets what data)
+    // can also extend customPartition
+    // Other partitioners (hash partitioner, range partitioner)
+    // partitionBy
   }
 
 }
