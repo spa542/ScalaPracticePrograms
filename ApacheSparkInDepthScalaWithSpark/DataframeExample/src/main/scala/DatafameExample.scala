@@ -115,7 +115,7 @@ object DataframeExample {
 
     // List the car names where price > 30000 (can do either way)
     carDF.where("price > 30000").select("CarName", "price").show(5)
-    ss.sql("""select CarName, price form carDFView where price > 30000""").show(5)
+    ss.sql("""select CarName, price from carDFView where price > 30000""").show(5)
 
     // Find the combined average of highway mpg and city mpg for all cars
     val avgMPG = (col("citympg") + col("highwaympg")) / 2
