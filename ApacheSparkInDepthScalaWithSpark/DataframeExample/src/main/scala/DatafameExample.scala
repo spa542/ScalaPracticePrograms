@@ -4,7 +4,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
 
-object DatafameExample {
+object DataframeExample {
 
   def main(args: Array[String]): Unit = {
     val ss = SparkSession.builder().master("yarn").appName("DataframeExampleSparkApp").getOrCreate()
