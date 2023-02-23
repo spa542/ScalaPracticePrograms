@@ -1,4 +1,4 @@
-package demo.ASandFPpart1
+package demo.part1ASandFP
 
 object AdvancedPatternMatching extends App {
 
