@@ -56,50 +56,6 @@ object TypeClasses extends App {
   // Describes a collection or properties or methods that a TYPE must have in order to belong to that specific type class
   // All implementers of a type class are called type class instances
 
-  // TYPE CLASS TEMPLATE
-  trait MyTypeClassTemplate[T] {
-    def action(value: T): String // or some other type
-  }
-
-  object MyTypeClassTemplate {
-    def apply[T](implicit instance: MyTypeClassTemplate[T]) = instance
-  }
-
-  /*
-    Implement Equality Type Class
-    - has a method called equal that compare two values
-    - implement two instances that compare users by name and both name and email
-   */
-  trait Equality[A, B] {
-    def equal(value1: A, value2: B): Boolean
-  }
-
-  object UserNameEquality extends Equality[User, User] {
-    override def equal(user1: User, user2: User): Boolean = user1.name == user2.name
-  }
-
-  object UserEmailEquality extends Equality[User, User] {
-    override def equal(user1: User, user2: User): Boolean = user1.email == user2.email
-  }
-
-  // Other simpler solution
-  trait Equal[T] {
-    def apply(a: T, b: T): Boolean
-  }
-
-  object Equal {
-    // For exercise 2
-    def apply[T](a: T, b: T)(implicit equalizer: Equal[T]): Boolean = equalizer.apply(a, b)
-  }
-
-  implicit object NameEquality extends Equal[User] {
-    override def apply(a: User, b: User): Boolean = a.name == b.name
-  }
-
-  object FullEquality extends Equal[User] {
-    override def apply(a: User, b: User): Boolean = a.email == b.email
-  }
-
   // Part 2 - Providing implicit type class instances by implicit values and parameters
   // Add companion object to HTML Serializer
   object HTMLSerializer {
@@ -123,12 +79,59 @@ object TypeClasses extends App {
   // Access the entire type class interface
   println(HTMLSerializer[User].serialize(john))
 
-  // Exercise: implement the type class pattern for the equality type class
-  println(Equal.apply(john, john))
-  println(Equal[User](john, john))
-  println(Equal(john, john)) // AD-HOC polymorphism
   // If we have two distinct or potentially unrelated types have equalizers implemented, we can call Equal on them regardless of type****
   // Compiler takes care to reach the correct type
 
+  // Part 3 - Enrichment
+  implicit class HTMLEnrichment[T](value: T) {
+    // Implicit parameter will take another implicit type
+    def toHTML2(implicit serializer: HTMLSerializer[T]): String = serializer.serialize(value)
+  }
+
+  // Tries to wrap john into whatever class has the method to be implemented
+  println(john.toHTML2(UserSerializer)) // println(new HTMLEnrichment[User](john).toHTML(UserSerializer))
+  println(john.toHTML2) // COOL!
+
+  // We can extend the functionality to new types
+  println(2.toHTML2)
+
+  // We can also have different implementations for the same type (choose implementation)
+  // Importing the specific serializer or defining it implicitly
+  println(john.toHTML2(PartialUserSerializer))
+
+  /* Enhancing types with a type class!
+    - type class itself HTMLSerializer[T] { ... }
+    - type class instances (some of which are implicit) UserSerializer, IntSerializer
+    - conversion with implicit classes HTMLEnrichment
+   */
+
+  // Context Bounds
+  def htmlBoilerplate[T](content: T)(implicit serializer: HTMLSerializer[T]): String =
+    s"<html><body> ${content.toHTML2(serializer)}</body></html>"
+
+  // Write in a sweeter way!
+  // This is telling the compiler to inject an implicit serializer as the second argument, however,
+  // we cannot reference serializer by name!
+  def htmlSugar[T: HTMLSerializer](content: T): String = {
+    // Get the serializer
+    val serializer = implicitly[HTMLSerializer[T]]
+    // Now we can use the serializer by name!
+    s"<html><body> ${content.toHTML2(serializer)}</body></html>"
+  }
+
+  // Implicitly
+  case class Permissions(mask: String)
+  implicit val defaultPermissions: Permissions = Permissions("0744")
+
+  // In some other part of the code we want to surface out what is the implicit val for permissions
+  val standardPerms = implicitly[Permissions]
+
+  // Takeaways
+  /*
+    * Type class
+    * Type class instances (often implicit)
+    * Invoking type class instances
+    * Enriching types with type classes
+   */
 
 }
